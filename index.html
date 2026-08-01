@@ -122,7 +122,7 @@
             <div class="text-center mb-8">
                 <span class="px-3 py-1 bg-brand-100 text-brand-800 rounded-full text-xs font-semibold tracking-wide uppercase">Evaluación de Conocimiento</span>
                 <h2 class="font-heading text-2xl md:text-3xl font-bold text-slate-900 mt-2">Pon a prueba tu aprendizaje</h2>
-                <p class="text-slate-600 text-sm mt-2">Completa tus datos para iniciar el Quiz interactivo de 6 preguntas sobre el Kit Escolar 2026.</p>
+                <p class="text-slate-600 text-sm mt-2">Completa tus datos para iniciar el Quiz interactivo de 7 preguntas sobre el Kit Escolar 2026.</p>
             </div>
 
             <form id="form-register" onsubmit="startQuiz(event)" class="space-y-4">
@@ -223,7 +223,7 @@
 
             <div class="my-6 p-6 bg-slate-50 border border-slate-200 rounded-2xl">
                 <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tu Puntaje Obtuvo</div>
-                <div class="font-heading text-4xl md:text-5xl font-extrabold text-brand-800" id="results-score">6 / 6</div>
+                <div class="font-heading text-4xl md:text-5xl font-extrabold text-brand-800" id="results-score">7 / 7</div>
                 <div class="text-xs text-slate-500 mt-2 font-medium" id="results-percentage">100% de Aciertos</div>
             </div>
 
@@ -314,7 +314,7 @@
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
                     <span class="text-xs text-slate-500 font-medium">Promedio Puntaje</span>
-                    <div class="font-heading text-2xl font-bold text-brand-700 mt-1" id="stat-avg">0.0 / 6</div>
+                    <div class="font-heading text-2xl font-bold text-brand-700 mt-1" id="stat-avg">0.0 / 7</div>
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
                     <span class="text-xs text-slate-500 font-medium">Tasa de Aprobación</span>
@@ -522,6 +522,23 @@
             const documentNum = document.getElementById('reg-document').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const company = document.getElementById('reg-company').value.trim() || 'N/A';
+            // Verificar si la cédula ya presentó el Quiz
+const records = getRecords();
+
+const alreadyExists = records.some(record =>
+    record.document.trim() === documentNum.trim()
+);
+function openDuplicateModal() {
+    document.getElementById("modal-duplicate").classList.remove("hidden");
+}
+
+function closeDuplicateModal() {
+    document.getElementById("modal-duplicate").classList.add("hidden");
+}
+if (alreadyExists) {
+    openDuplicateModal();
+    return;
+}
 
             if (!name || !documentNum || !email) {
                 alert('Por favor completa los campos obligatorios (*)');
@@ -667,7 +684,7 @@
                 score: score,
                 total: quizQuestions.length,
                 percentage: Math.round((score / quizQuestions.length) * 100),
-                passed: (score >= 4), // 4/6 or more to pass (>= 66%)
+                passed: (score >= 5), // 5/7 or more to pass (>= 66%)
                 answers: userAnswers
             };
 
@@ -769,7 +786,7 @@
             const passRate = total > 0 ? Math.round((passedCount / total) * 100) : 0;
 
             document.getElementById('stat-total').innerText = total;
-            document.getElementById('stat-avg').innerText = `${avgScore} / 6`;
+        document.getElementById('stat-avg').innerText = `${avgScore} / ${quizQuestions.length}`;
             document.getElementById('stat-pass').innerText = `${passRate}%`;
 
             const tbody = document.getElementById('admin-table-body');
@@ -867,7 +884,7 @@
         function promptWebhookUrl() {
             const current = localStorage.getItem('google_sheet_webhook') || '';
             const url = prompt(
-                "Ingresa la URL del Webhook de Google Apps Script para sincronizar automáticamente con tu Hoja de Cálculo:\n\nLink Hoja objetivo: https://docs.google.com/spreadsheets/d/1RfZ82xpH0Wo6HgVpO5RYIwM64LVWFTL5LBvgLms6HcU/",
+                "Ingresa la URL del Webhook de Google Apps Script para sincronizar automáticamente con tu Hoja de Cálculo:\n\nLink Hoja objetivo:https://docs.google.com/spreadsheets/d/1RfZ82xpH0Wo6HgVpO5RYIwM64LVWFTL5LBvgLms6HcU/edit?gid=0#gid=0",
                 current
             );
 
@@ -902,5 +919,36 @@ function syncToGoogleSheets(record) {
     });
 }
 </script>
+<!-- ==================== MODAL CÉDULA DUPLICADA ==================== -->
+<div id="modal-duplicate" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 text-center">
+
+        <div class="w-20 h-20 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-5">
+            <i class="fa-solid fa-triangle-exclamation text-4xl text-red-600"></i>
+        </div>
+
+        <h2 class="font-heading text-2xl font-bold text-slate-900 mb-3">
+            Acceso denegado
+        </h2>
+
+        <p class="text-slate-600 leading-relaxed mb-6">
+            Esta <strong>cédula ya presentó el Quiz</strong>.
+            <br><br>
+            Solo se permite <strong>un intento por participante.</strong>
+            <br><br>
+            Si consideras que es un error,
+            comunícate con el administrador.
+        </p>
+
+        <button
+            onclick="closeDuplicateModal()"
+            class="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition">
+
+            Entendido
+
+        </button>
+
+    </div>
+</div>
 </body>
 </html>
