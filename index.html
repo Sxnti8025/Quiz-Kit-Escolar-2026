@@ -459,6 +459,19 @@
                 correct: 2,
                 explanation: "El trabajador solicitante debe estar afiliado a la Caja de Compensación y encontrarse en categoría A o B, además de contar con cuota monetaria liquidada."
             }
+            {
+                id: 7,
+                slideRef: "Slide 6 y 7: Requisitos del Trabajador",
+                question: "¿El beenficiario postulado debe de tener liquidada su cuota monetaria al menos uno de los dos ultimos meses previos a la postulación (Ej, si la postulación es en septiembre, que mes o meses debe de contar con la cuota liquidada??",
+                options: [
+                    "Marzo y Abril",
+                    "Mayo y Junio",
+                    "Junio o Julio",
+                    "Julio y Agosto"
+                ],
+                correct: 2,
+                explanation: "El trabajador solicitante debe estar afiliado a la Caja de Compensación y encontrarse en categoría A o B, además de contar con su cuota y/o cuotas monetarias liquidadas."
+            }
         ];
 
         // Global State Variables
@@ -865,23 +878,27 @@
             }
         }
 
-        function syncToGoogleSheets(record) {
-            if (!webhookUrl) return;
+function syncToGoogleSheets(record) {
+    if (!webhookUrl) return;
 
-            fetch(webhookUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(record)
-            }).then(() => {
-                console.log('Sincronizado con Google Sheets con éxito');
-            }).catch(err => {
-                console.error('Error al sincronizar con Google Sheets:', err);
-            });
+    fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(record)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
         }
-    </script>
-</body>
-</html>
-```eof
+        return response.json();
+    })
+    .then(data => {
+        console.log("Google Sheets:", data);
+    })
+    .catch(error => {
+        console.error("Error al sincronizar:", error);
+    });
+}
+}
