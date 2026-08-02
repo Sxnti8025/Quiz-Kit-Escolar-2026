@@ -376,6 +376,47 @@
             </div>
         </div>
     </div>
+    <script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+
+import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    where,
+    deleteDoc,
+    doc
+} from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAntjqPbx8PvU-KavARfHT5yKXsZxmGiP4",
+    authDomain: "resultados-quiz-kit-escolar.firebaseapp.com",
+    projectId: "resultados-quiz-kit-escolar",
+    storageBucket: "resultados-quiz-kit-escolar.firebasestorage.app",
+    messagingSenderId: "442208805825",
+    appId: "1:442208805825:web:9666f32d2540c88cf04540"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.db = db;
+window.firebaseFunctions = {
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    where,
+    deleteDoc,
+    doc
+};
+
+console.log("🔥 Firebase conectado correctamente.");
+
+</script>
 
     <!-- ==================== JAVASCRIPT LOGIC ==================== -->
     <script>
@@ -504,37 +545,55 @@
             }
         }
 
-        function saveRecord(record) {
-            const records = getRecords();
-            records.unshift(record);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+async function saveRecord(record) {
 
-            // Sync with Google Sheets webhook if configured
-            if (webhookUrl) {
-                syncToGoogleSheets(record);
-            }
-        }
+    try {
 
+        await window.firebaseFunctions.addDoc(
+
+            window.firebaseFunctions.collection(window.db, "quiz_registros"),
+
+            record
+
+        );
+
+        console.log("✅ Registro guardado en Firebase");
+
+    } catch (error) {
+
+        console.error("Error Firebase:", error);
+
+    }
+
+}
+function openDuplicateModal() {
+    document.getElementById("modal-duplicate").classList.remove("hidden");
+}
+
+function closeDuplicateModal() {
+
+    document.getElementById("modal-duplicate").classList.add("hidden");
+
+    document.getElementById("reg-document").focus();
+
+    document.getElementById("reg-document").select();
+
+}
         // START QUIZ
-        function startQuiz(e) {
+        async function startQuiz(e) {
             e.preventDefault();
             const name = document.getElementById('reg-name').value.trim();
             const documentNum = document.getElementById('reg-document').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const company = document.getElementById('reg-company').value.trim() || 'N/A';
             // Verificar si la cédula ya presentó el Quiz
-const records = getRecords();
+            const records = await getRecordsFirebase();
 
 const alreadyExists = records.some(record =>
+    record.document &&
     record.document.trim() === documentNum.trim()
 );
-function openDuplicateModal() {
-    document.getElementById("modal-duplicate").classList.remove("hidden");
-}
 
-function closeDuplicateModal() {
-    document.getElementById("modal-duplicate").classList.add("hidden");
-}
 if (alreadyExists) {
     openDuplicateModal();
     return;
@@ -673,7 +732,7 @@ if (alreadyExists) {
         }
 
         // FINISH QUIZ & RECORD RESULT
-        function finishQuiz() {
+        async function finishQuiz() {
             const record = {
                 id: 'REC-' + Date.now().toString().substr(-6),
                 name: currentUser.name,
@@ -688,7 +747,7 @@ if (alreadyExists) {
                 answers: userAnswers
             };
 
-            saveRecord(record);
+           await saveRecord(record);
 
             // Show Results Screen
             document.getElementById('screen-quiz').classList.add('hidden');
@@ -776,8 +835,9 @@ if (alreadyExists) {
             document.getElementById('modal-admin-dashboard').classList.add('hidden');
         }
 
-        function renderAdminDashboard() {
-            const records = getRecords();
+        async function renderAdminDashboard() {
+
+    const records = await getRecordsFirebase();
             
             // Calculate stats
             const total = records.length;
@@ -817,7 +877,7 @@ if (alreadyExists) {
                         </span>
                     </td>
                     <td class="p-3 text-right">
-                        <button onclick="deleteRecord('${r.id}')" class="text-slate-400 hover:text-red-600 p-1 transition" title="Eliminar Registro">
+                        <button onclick="deleteRecord('${r.firebaseId}')"class="text-slate-400 hover:text-red-600 p-1 transition" title="Eliminar Registro">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </td>
@@ -826,25 +886,45 @@ if (alreadyExists) {
             });
         }
 
-        function deleteRecord(id) {
-            if (confirm('¿Deseas eliminar este registro?')) {
-                let records = getRecords();
-                records = records.filter(r => r.id !== id);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-                renderAdminDashboard();
-            }
-        }
+        async function deleteRecord(firebaseId) {
 
-        function clearAllRecords() {
-            if (confirm('¿Estás SEGURO de borrar TODOS los datos registrados? Esta acción no se puede deshacer.')) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
-                renderAdminDashboard();
-            }
-        }
+    if (!confirm('¿Deseas eliminar este registro?')) return;
+
+    await window.firebaseFunctions.deleteDoc(
+
+        window.firebaseFunctions.doc(
+            window.db,
+            "quiz_registros",
+            firebaseId
+        )
+
+    );
+
+    renderAdminDashboard();
+
+}
+        async function clearAllRecords() {
+
+    if (!confirm('¿Estás SEGURO de borrar TODOS los datos registrados? Esta acción no se puede deshacer.'))
+        return;
+
+    const snapshot = await window.firebaseFunctions.getDocs(
+        window.firebaseFunctions.collection(window.db, "quiz_registros")
+    );
+
+    for (const documento of snapshot.docs) {
+
+        await window.firebaseFunctions.deleteDoc(documento.ref);
+
+    }
+
+    renderAdminDashboard();
+
+}
 
         // EXPORT TO EXCEL (.xlsx)
-        function exportToExcel() {
-            const records = getRecords();
+        async function exportToExcel() {
+            const records = await getRecordsFirebase();
             if (records.length === 0) {
                 alert('No hay datos para exportar.');
                 return;
@@ -917,6 +997,26 @@ function syncToGoogleSheets(record) {
     .catch(error => {
         console.error("Error al sincronizar:", error);
     });
+}
+async function getRecordsFirebase() {
+
+    const snapshot = await window.firebaseFunctions.getDocs(
+        window.firebaseFunctions.collection(window.db, "quiz_registros")
+    );
+
+    const records = [];
+
+    snapshot.forEach(doc => {
+
+        records.push({
+            firebaseId: doc.id,
+            ...doc.data()
+        });
+
+    });
+
+    return records;
+
 }
 </script>
 <!-- ==================== MODAL CÉDULA DUPLICADA ==================== -->
